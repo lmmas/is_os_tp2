@@ -9,12 +9,14 @@ HEADER * freeBlockListHead = NULL;
 void * malloc_3is(size_t dataSize) {
     HEADER * headerPtr = findBlockOfExactSize(dataSize);
     if(headerPtr!=NULL) {
+        headerPtr->ptr_next = NULL;
         void * dataAddress = (void *)(headerPtr + 1);
         return dataAddress;
     }
     headerPtr = findBigBlock(dataSize);
     if(headerPtr != NULL) {
         sliceBigBlock(headerPtr, dataSize);
+        headerPtr->ptr_next = NULL;
         void * dataAddress = (void *)(headerPtr + 1);
         return dataAddress;
     }
@@ -33,8 +35,7 @@ void * malloc_3is(size_t dataSize) {
 }
 
 void free_3is(void * address) {
-    HEADER* headerPtr = address;
-    headerPtr--;
+    HEADER* headerPtr = (HEADER*)address - 1;
     if(freeBlockListHead == NULL) {
         freeBlockListHead = headerPtr;
     }
@@ -88,18 +89,22 @@ void allocTest() {
         *(testArray + i) = i;
     }
     printf("test number: %d\n", *(testArray+ 4));
+    int check = check_memory(testArray);
+    printf("check: %d\n", check);
+    free_3is(testArray);
 
     int arraySize2 = 8;
     int * testArray2 = malloc_3is(arraySize2 * sizeof(int));
-    int check = check_memory(testArray);
-    printf("check: %d\n", check);
+    free_3is(testArray2);
+
     int arraySize3 = 100;
     int * testArray3 = malloc_3is(arraySize3 * sizeof(int));
+    //HEADER* headerPtr3 = (HEADER*)testArray3 - 1;
+    free_3is(testArray3);
+
     int arraySize4 = 5;
     int * testArray4 = malloc_3is(arraySize4 * sizeof(int));
-    free_3is(testArray);
-    free_3is(testArray2);
-    free_3is(testArray3);
+    //HEADER* headerPtr4 = (HEADER*)testArray4 - 1;
     free_3is(testArray4);
 
     int* testArray5 = malloc_3is(arraySize * sizeof(int));
