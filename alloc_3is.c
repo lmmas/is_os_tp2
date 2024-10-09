@@ -10,21 +10,20 @@ typedef struct HEADER_TAG {
 } HEADER;
 
 void * malloc_3is(size_t dataSize) {
-    HEADER newHeader;
-    newHeader.block_size = dataSize;
+
     long newMagicNumber = 0x0123456789ABCDEFL;
-    newHeader.magic_number = newMagicNumber;
-    void * oldAddress = sbrk(0);
-    void * newAddress = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
+
+    void * oldAddress = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
 
     HEADER* headerAddress = oldAddress;
-    *headerAddress = newHeader;
+    HEADER newHeader = *headerAddress;
+    newHeader.block_size = dataSize;
+    newHeader.magic_number = newMagicNumber;
 
     void * blockAddress = oldAddress + sizeof(HEADER);
 
     long* longAddress = (blockAddress + dataSize);
     *longAddress = newMagicNumber;
-    printf("%p, %lX\n",longAddress, *longAddress );
     return blockAddress;
 
 }
@@ -38,10 +37,12 @@ void allocTest() {
     for(int i = 0; i < arraySize; i++) {
         *(testArray + i) = i;
     }
-    //long magicNumber = *(long*)(((void*) testArray) + arraySize*sizeof(int));
-    long magicNumber = *(testArray + arraySize);
-    printf("%p", testArray + arraySize);
+    long magicNumber = *(long*)(((void*) testArray) + arraySize*sizeof(int));
     printf("magic number: %lX\n", magicNumber);
-    printf("sizeof int: %ld\n", sizeof(int));
-    printf("sizeof long: %ld\n", sizeof(long));
+}
+
+void free_3is(void * address) {
+
+
+
 }

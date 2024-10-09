@@ -9,4 +9,5 @@
 #include <stdlib.h>
 void * malloc_3is(size_t dataSize);
 void allocTest();
+void free_3is(void * address);
 #endif //ALLOC_3IS_H
