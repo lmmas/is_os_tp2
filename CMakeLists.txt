@@ -5,3 +5,5 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(is_os_tp2 main.c
         alloc_3is.c)
+
+target_compile_options(is_os_tp2 PRIVATE -Wall -Wextra)

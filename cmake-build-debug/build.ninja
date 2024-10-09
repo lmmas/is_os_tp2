@@ -51,13 +51,13 @@ build cmake_object_order_depends_target_is_os_tp2: phony || .
 
 build CMakeFiles/is_os_tp2.dir/main.c.o: C_COMPILER__is_os_tp2_unscanned_Debug /home/louismmassin/CLionProjects/is_os_tp2/main.c || cmake_object_order_depends_target_is_os_tp2
   DEP_FILE = CMakeFiles/is_os_tp2.dir/main.c.o.d
-  FLAGS = -g -std=gnu11 -fdiagnostics-color=always
+  FLAGS = -g -std=gnu11 -fdiagnostics-color=always -Wall -Wextra
   OBJECT_DIR = CMakeFiles/is_os_tp2.dir
   OBJECT_FILE_DIR = CMakeFiles/is_os_tp2.dir
 
 build CMakeFiles/is_os_tp2.dir/alloc_3is.c.o: C_COMPILER__is_os_tp2_unscanned_Debug /home/louismmassin/CLionProjects/is_os_tp2/alloc_3is.c || cmake_object_order_depends_target_is_os_tp2
   DEP_FILE = CMakeFiles/is_os_tp2.dir/alloc_3is.c.o.d
-  FLAGS = -g -std=gnu11 -fdiagnostics-color=always
+  FLAGS = -g -std=gnu11 -fdiagnostics-color=always -Wall -Wextra
   OBJECT_DIR = CMakeFiles/is_os_tp2.dir
   OBJECT_FILE_DIR = CMakeFiles/is_os_tp2.dir
 
