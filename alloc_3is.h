@@ -7,8 +7,16 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+typedef struct HEADER_TAG {
+    struct HEADER_TAG * ptr_next;
+    size_t block_size;
+    long magic_number;
+} HEADER;
+
 void * malloc_3is(size_t dataSize);
 void allocTest();
 void free_3is(void * address);
 int check_memory(void * address);
+HEADER * findBlock(size_t dataSize);
 #endif //ALLOC_3IS_H

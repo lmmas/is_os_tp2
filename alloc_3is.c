@@ -3,18 +3,15 @@
 //
 #include "alloc_3is.h"
 
-typedef struct HEADER_TAG {
-    struct HEADER_TAG * ptr_next;
-    size_t block_size;
-    long magic_number;
-} HEADER;
-
 long magicNumber = 0x0123456789ABCDEFL;
 HEADER * freeBlockListHead = NULL;
-HEADER * freeBlockList;
 
 void * malloc_3is(size_t dataSize) {
-
+    HEADER * emptyBlockAddress = findBlock(dataSize);
+    if(emptyBlockAddress!=NULL) {
+        emptyBlockAddress++;
+        return (void *)emptyBlockAddress;
+    }
     void * oldAddress = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
 
     HEADER* headerAddress = oldAddress;
@@ -31,15 +28,34 @@ void * malloc_3is(size_t dataSize) {
 }
 
 void free_3is(void * address) {
-    HEADER* headerAddress = address;
-    headerAddress--;
+    HEADER* headerPtr = address;
+    headerPtr--;
     if(freeBlockListHead == NULL) {
-        freeBlockListHead = headerAddress;
-        freeBlockList = freeBlockListHead;
+        freeBlockListHead = headerPtr;
+    }
+    else if(freeBlockListHead->block_size >= headerPtr->block_size) {
+        HEADER * tempPtr = freeBlockListHead;
+        freeBlockListHead = headerPtr;
+        freeBlockListHead->ptr_next = tempPtr;
     }
     else {
-        freeBlockList->ptr_next = headerAddress;
-        freeBlockList = freeBlockList->ptr_next;
+        HEADER * freeBlockList = freeBlockListHead;
+        int loopEnd = 0;
+        while(loopEnd == 0) {
+            if(freeBlockList->ptr_next == NULL) {
+                freeBlockList->ptr_next = headerPtr;
+                loopEnd = 1;
+            }
+            else if (freeBlockList->ptr_next->block_size >= headerPtr->block_size){
+                HEADER* tempPtr = freeBlockList->ptr_next;
+                freeBlockList->ptr_next = headerPtr;
+                headerPtr->ptr_next = tempPtr;
+                loopEnd = 1;
+            }
+            else {
+                freeBlockList = freeBlockList->ptr_next;
+            }
+        }
     }
 }
 
@@ -52,13 +68,12 @@ int check_memory(void * address) {
     long rightWatchdog = *(long*)(right_address);
     if (leftWatchdog == magicNumber && rightWatchdog == magicNumber) {
         return 0;
-    } else {
-        return 1;
     }
+    return 1;
 }
 
 void allocTest() {
-    int arraySize = 8;
+    int arraySize = 9;
     int* testArray = malloc_3is(arraySize * sizeof(int));
     printf("address testArray : %p \n", testArray);
     for(int i = 0; i < arraySize; i++) {
@@ -66,9 +81,36 @@ void allocTest() {
     }
     printf("test number: %d\n", *(testArray+ 4));
     free_3is(testArray);
-    int arraySize2 = 9;
+    int arraySize2 = 8;
     int * testArray2 = malloc_3is(arraySize2 * sizeof(int));
     int check = check_memory(testArray);
     printf("check: %d\n", check);
     free_3is(testArray2);
+    int arraySize3 = 10;
+    int * testArray3 = malloc_3is(arraySize3 * sizeof(int));
+    free_3is(testArray3);
+    int arraySize4 = 5;
+    int * testArray4 = malloc_3is(arraySize4 * sizeof(int));
+    free_3is(testArray4);
+
+    int* testArray5 = malloc_3is(arraySize * sizeof(int));
+
+}
+
+HEADER * findBlock(size_t dataSize) {
+    if(freeBlockListHead == NULL) {
+        return NULL;
+    }
+    HEADER * currentBlock = freeBlockListHead;
+    while(1) {
+        if(currentBlock->ptr_next == NULL) {
+            return NULL;
+        }
+        if(currentBlock->ptr_next->block_size == dataSize) {
+            HEADER * selectedBlock = currentBlock->ptr_next;
+            currentBlock->ptr_next = selectedBlock->ptr_next;
+            return selectedBlock;
+        }
+        currentBlock = currentBlock->ptr_next;
+    }
 }
