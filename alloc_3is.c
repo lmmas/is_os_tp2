@@ -35,32 +35,32 @@ void * malloc_3is(size_t dataSize) {
 }
 
 void free_3is(void * address) {
-    HEADER* headerPtr = (HEADER*)address - 1;
     if(freeBlockListHead == NULL) {
+        //cas où c'est le premier bloc libéré
+        HEADER * headerPtr = (HEADER*)address - 1;
         freeBlockListHead = headerPtr;
-    }
-    else if(freeBlockListHead->block_size <= headerPtr->block_size) {
-        HEADER * tempPtr = freeBlockListHead;
-        freeBlockListHead = headerPtr;
-        freeBlockListHead->ptr_next = tempPtr;
     }
     else {
-        HEADER * freeBlockList = freeBlockListHead;
-        int loopEnd = 0;
-        while(loopEnd == 0) {
-            if(freeBlockList->ptr_next == NULL) {
-                freeBlockList->ptr_next = headerPtr;
-                loopEnd = 1;
-            }
-            else if (freeBlockList->ptr_next->block_size <= headerPtr->block_size){
-                HEADER* tempPtr = freeBlockList->ptr_next;
-                freeBlockList->ptr_next = headerPtr;
-                headerPtr->ptr_next = tempPtr;
-                loopEnd = 1;
-            }
-            else {
-                freeBlockList = freeBlockList->ptr_next;
-            }
+        HEADER* headerPtr = (HEADER*)address - 1;
+        HEADER* previousHeaderPtr = findPreviousInFreeList(headerPtr);
+        if(previousHeaderPtr == NULL) {
+            //cas où le nouveau bloc libéré doit être placé en premier
+            headerPtr->ptr_next = freeBlockListHead;
+            freeBlockListHead = headerPtr;
+            mergeIfAdjacent(freeBlockListHead, freeBlockListHead->ptr_next);
+        }
+        else if(previousHeaderPtr->ptr_next == NULL) {
+            //cas où le nouveau bloc libéré est à la fin
+            previousHeaderPtr->ptr_next = headerPtr;
+            mergeIfAdjacent(previousHeaderPtr, headerPtr);
+        }
+        else {
+            //cas général
+            HEADER* nextHeaderPtr = previousHeaderPtr->ptr_next;
+            previousHeaderPtr->ptr_next = headerPtr;
+            headerPtr->ptr_next = nextHeaderPtr;
+            mergeIfAdjacent(headerPtr,nextHeaderPtr);
+            mergeIfAdjacent(previousHeaderPtr, headerPtr);
         }
     }
 }
@@ -92,6 +92,7 @@ void allocTest() {
     int check = check_memory(testArray);
     printf("check: %d\n", check);
     free_3is(testArray);
+    void* testAddress = malloc_3is(42);
 
     int arraySize2 = 8;
     int * testArray2 = malloc_3is(arraySize2 * sizeof(int));
@@ -171,4 +172,31 @@ void sliceBigBlock(HEADER * bigBlock, size_t dataSize) {
     newHeaderPtr->magic_number = magicNumber;
     void* newDataPtr = (void*)(newHeaderPtr+1);
     free_3is(newDataPtr);
+}
+
+HEADER * findPreviousInFreeList(HEADER* headerPtr) {
+    if(freeBlockListHead >= headerPtr) {
+        return NULL;
+    }
+    else {
+        HEADER * freeBlockList = freeBlockListHead;
+        while(1) {
+            if(freeBlockList->ptr_next == NULL) {
+                return freeBlockList;
+            }
+            else if (freeBlockList->ptr_next >= headerPtr){
+                return freeBlockList;
+            }
+            else {
+                freeBlockList = freeBlockList->ptr_next;
+            }
+        }
+    }
+}
+
+void mergeIfAdjacent(HEADER * leftBlockPtr, HEADER* rightBlockPtr) {
+    if ((void*)leftBlockPtr == (void*)rightBlockPtr - sizeof(long) - leftBlockPtr->block_size - sizeof(HEADER)) {
+        leftBlockPtr->ptr_next = rightBlockPtr->ptr_next;
+        leftBlockPtr->block_size += sizeof(long) + rightBlockPtr->block_size + sizeof(HEADER);
+    }
 }

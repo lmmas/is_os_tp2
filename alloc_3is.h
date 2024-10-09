@@ -21,4 +21,6 @@ int check_memory(void * address);
 HEADER * findBlockOfExactSize(size_t dataSize);
 HEADER * findBigBlock(size_t dataSize);
 void sliceBigBlock(HEADER * bigBlock, size_t dataSize);
+HEADER * findPreviousInFreeList(HEADER* headerPtr);
+void mergeIfAdjacent(HEADER * leftBlockPtr, HEADER* rightBlockPtr);
 #endif //ALLOC_3IS_H
