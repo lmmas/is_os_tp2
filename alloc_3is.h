@@ -18,5 +18,7 @@ void * malloc_3is(size_t dataSize);
 void allocTest();
 void free_3is(void * address);
 int check_memory(void * address);
-HEADER * findBlock(size_t dataSize);
+HEADER * findBlockOfExactSize(size_t dataSize);
+HEADER * findBigBlock(size_t dataSize);
+void sliceBigBlock(HEADER * bigBlock, size_t dataSize);
 #endif //ALLOC_3IS_H

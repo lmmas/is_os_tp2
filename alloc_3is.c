@@ -7,19 +7,24 @@ long magicNumber = 0x0123456789ABCDEFL;
 HEADER * freeBlockListHead = NULL;
 
 void * malloc_3is(size_t dataSize) {
-    HEADER * emptyBlockAddress = findBlock(dataSize);
-    if(emptyBlockAddress!=NULL) {
-        emptyBlockAddress++;
-        return (void *)emptyBlockAddress;
+    HEADER * headerPtr = findBlockOfExactSize(dataSize);
+    if(headerPtr!=NULL) {
+        void * dataAddress = (void *)(headerPtr + 1);
+        return dataAddress;
     }
-    void * oldAddress = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
+    headerPtr = findBigBlock(dataSize);
+    if(headerPtr != NULL) {
+        sliceBigBlock(headerPtr, dataSize);
+        void * dataAddress = (void *)(headerPtr + 1);
+        return dataAddress;
+    }
 
-    HEADER* headerAddress = oldAddress;
-    headerAddress->block_size = dataSize;
-    headerAddress->magic_number = magicNumber;
-    headerAddress->ptr_next = NULL;
+    headerPtr = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
+    headerPtr->block_size = dataSize;
+    headerPtr->magic_number = magicNumber;
+    headerPtr->ptr_next = NULL;
 
-    void * blockAddress = oldAddress + sizeof(HEADER);
+    void * blockAddress = (void*)(headerPtr + 1);
 
     long* longAddress = (blockAddress + dataSize);
     *longAddress = magicNumber;
@@ -33,7 +38,7 @@ void free_3is(void * address) {
     if(freeBlockListHead == NULL) {
         freeBlockListHead = headerPtr;
     }
-    else if(freeBlockListHead->block_size >= headerPtr->block_size) {
+    else if(freeBlockListHead->block_size <= headerPtr->block_size) {
         HEADER * tempPtr = freeBlockListHead;
         freeBlockListHead = headerPtr;
         freeBlockListHead->ptr_next = tempPtr;
@@ -46,7 +51,7 @@ void free_3is(void * address) {
                 freeBlockList->ptr_next = headerPtr;
                 loopEnd = 1;
             }
-            else if (freeBlockList->ptr_next->block_size >= headerPtr->block_size){
+            else if (freeBlockList->ptr_next->block_size <= headerPtr->block_size){
                 HEADER* tempPtr = freeBlockList->ptr_next;
                 freeBlockList->ptr_next = headerPtr;
                 headerPtr->ptr_next = tempPtr;
@@ -73,6 +78,9 @@ int check_memory(void * address) {
 }
 
 void allocTest() {
+    printf("size of an int: %lu\n", sizeof(int));
+    printf("size of a long: %lu\n", sizeof(long));
+    printf("size of a header: %lu\n", sizeof(HEADER));
     int arraySize = 9;
     int* testArray = malloc_3is(arraySize * sizeof(int));
     printf("address testArray : %p \n", testArray);
@@ -80,24 +88,26 @@ void allocTest() {
         *(testArray + i) = i;
     }
     printf("test number: %d\n", *(testArray+ 4));
-    free_3is(testArray);
+
     int arraySize2 = 8;
     int * testArray2 = malloc_3is(arraySize2 * sizeof(int));
     int check = check_memory(testArray);
     printf("check: %d\n", check);
-    free_3is(testArray2);
-    int arraySize3 = 10;
+    int arraySize3 = 100;
     int * testArray3 = malloc_3is(arraySize3 * sizeof(int));
-    free_3is(testArray3);
     int arraySize4 = 5;
     int * testArray4 = malloc_3is(arraySize4 * sizeof(int));
+    free_3is(testArray);
+    free_3is(testArray2);
+    free_3is(testArray3);
     free_3is(testArray4);
 
     int* testArray5 = malloc_3is(arraySize * sizeof(int));
+    int * testArray6 = malloc_3is(2 * sizeof(int));
 
 }
 
-HEADER * findBlock(size_t dataSize) {
+HEADER * findBlockOfExactSize(size_t dataSize) {
     if(freeBlockListHead == NULL) {
         return NULL;
     }
@@ -113,4 +123,47 @@ HEADER * findBlock(size_t dataSize) {
         }
         currentBlock = currentBlock->ptr_next;
     }
+}
+
+HEADER * findBigBlock(size_t dataSize) {
+    if(freeBlockListHead == NULL) {
+        return NULL;
+    }
+    size_t requiredSize = dataSize + sizeof(HEADER) + sizeof(long);
+    if(freeBlockListHead->block_size > requiredSize) {
+        HEADER * selectedBlock = freeBlockListHead;
+        freeBlockListHead = freeBlockListHead->ptr_next;
+        return selectedBlock;
+    }
+    HEADER * currentBlock = freeBlockListHead;
+    while(1) {
+        if(currentBlock->ptr_next == NULL) {
+            return NULL;
+        }
+        if(currentBlock->ptr_next->block_size > requiredSize) {
+            //taking the block out of the list
+            HEADER * selectedBlock = currentBlock->ptr_next;
+            currentBlock->ptr_next = selectedBlock->ptr_next;
+            return selectedBlock;
+        }
+        currentBlock = currentBlock->ptr_next;
+    }
+}
+
+void sliceBigBlock(HEADER * bigBlock, size_t dataSize) {
+    const size_t oldSize = bigBlock->block_size;
+
+    //modifying the size of the block
+    bigBlock->block_size = dataSize;
+    void* dataPtr = (void*)(bigBlock + 1);
+    long* watchdogPtr = (long*)(dataPtr + dataSize);
+    *watchdogPtr = magicNumber;
+
+    //creating a free block from the remaining space
+    HEADER* newHeaderPtr = (HEADER*)(watchdogPtr + 1);
+    newHeaderPtr->ptr_next = NULL;
+    newHeaderPtr->block_size = oldSize - dataSize - sizeof(long) - sizeof(HEADER);
+    newHeaderPtr->magic_number = magicNumber;
+    void* newDataPtr = (void*)(newHeaderPtr+1);
+    free_3is(newDataPtr);
 }
