@@ -10,4 +10,5 @@
 void * malloc_3is(size_t dataSize);
 void allocTest();
 void free_3is(void * address);
+int check_memory(void * address);
 #endif //ALLOC_3IS_H
