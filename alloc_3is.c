@@ -24,25 +24,25 @@ void * malloc_3is(size_t dataSize) {
     if(dataSize > ALLOCMINSIZE) {
         headerPtr = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
         headerPtr->block_size = dataSize;
-        headerPtr->magic_number = magicNumber;
+        headerPtr->magic_number = random();
         headerPtr->ptr_next = NULL;
 
         void * blockAddress = (void*)(headerPtr + 1);
 
         long* longAddress = (blockAddress + dataSize);
-        *longAddress = magicNumber;
+        *longAddress = headerPtr->magic_number;
         return blockAddress;
     }
     else {
         headerPtr = sbrk(sizeof(HEADER)+ ALLOCMINSIZE + sizeof(long));
         headerPtr->block_size = ALLOCMINSIZE;
-        headerPtr->magic_number = magicNumber;
+        headerPtr->magic_number = random();
         headerPtr->ptr_next = NULL;
 
         void * blockAddress = (void*)(headerPtr + 1);
 
         long* longAddress = (blockAddress + ALLOCMINSIZE);
-        *longAddress = magicNumber;
+        *longAddress = headerPtr->magic_number;
         sliceBigBlock(headerPtr, dataSize);
         return blockAddress;
     }
@@ -80,13 +80,12 @@ void free_3is(void * address) {
 }
 
 int check_memory(void * address) {
-    HEADER* headerAddress = address;
-    headerAddress--;
+    HEADER* headerAddress = (HEADER *)address - 1;
     long leftWatchdog = headerAddress->magic_number;
     size_t size = headerAddress->block_size;
     void * right_address = address + size;
     long rightWatchdog = *(long*)(right_address);
-    if (leftWatchdog == magicNumber && rightWatchdog == magicNumber) {
+    if (leftWatchdog == rightWatchdog) {
         return 0;
     }
     return 1;
@@ -177,13 +176,15 @@ void sliceBigBlock(HEADER * bigBlock, size_t dataSize) {
     bigBlock->block_size = dataSize;
     void* dataPtr = (void*)(bigBlock + 1);
     long* watchdogPtr = (long*)(dataPtr + dataSize);
-    *watchdogPtr = magicNumber;
+    *watchdogPtr = bigBlock->magic_number;
 
     //creating a free block from the remaining space
     HEADER* newHeaderPtr = (HEADER*)(watchdogPtr + 1);
     newHeaderPtr->ptr_next = NULL;
     newHeaderPtr->block_size = oldSize - dataSize - sizeof(long) - sizeof(HEADER);
-    newHeaderPtr->magic_number = magicNumber;
+    newHeaderPtr->magic_number = random();
+    long* newWatchdogPtr = (long*)((void*)(newHeaderPtr + 1) + newHeaderPtr->block_size);
+    *newWatchdogPtr = newHeaderPtr->magic_number;
     void* newDataPtr = (void*)(newHeaderPtr+1);
     free_3is(newDataPtr);
 }
@@ -210,7 +211,10 @@ HEADER * findPreviousInFreeList(HEADER* headerPtr) {
 
 void mergeIfAdjacent(HEADER * leftBlockPtr, HEADER* rightBlockPtr) {
     if ((void*)leftBlockPtr == (void*)rightBlockPtr - sizeof(long) - leftBlockPtr->block_size - sizeof(HEADER)) {
+        long* rightWatchdogPtr =  (long*)((void*)(rightBlockPtr + 1) + rightBlockPtr->block_size);
+        *rightWatchdogPtr = leftBlockPtr->magic_number;
         leftBlockPtr->ptr_next = rightBlockPtr->ptr_next;
         leftBlockPtr->block_size += sizeof(long) + rightBlockPtr->block_size + sizeof(HEADER);
+
     }
 }
