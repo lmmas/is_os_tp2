@@ -21,17 +21,31 @@ void * malloc_3is(size_t dataSize) {
         return dataAddress;
     }
 
-    headerPtr = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
-    headerPtr->block_size = dataSize;
-    headerPtr->magic_number = magicNumber;
-    headerPtr->ptr_next = NULL;
+    if(dataSize > ALLOCMINSIZE) {
+        headerPtr = sbrk(sizeof(HEADER)+ dataSize + sizeof(long));
+        headerPtr->block_size = dataSize;
+        headerPtr->magic_number = magicNumber;
+        headerPtr->ptr_next = NULL;
 
-    void * blockAddress = (void*)(headerPtr + 1);
+        void * blockAddress = (void*)(headerPtr + 1);
 
-    long* longAddress = (blockAddress + dataSize);
-    *longAddress = magicNumber;
-    return blockAddress;
+        long* longAddress = (blockAddress + dataSize);
+        *longAddress = magicNumber;
+        return blockAddress;
+    }
+    else {
+        headerPtr = sbrk(sizeof(HEADER)+ ALLOCMINSIZE + sizeof(long));
+        headerPtr->block_size = ALLOCMINSIZE;
+        headerPtr->magic_number = magicNumber;
+        headerPtr->ptr_next = NULL;
 
+        void * blockAddress = (void*)(headerPtr + 1);
+
+        long* longAddress = (blockAddress + ALLOCMINSIZE);
+        *longAddress = magicNumber;
+        sliceBigBlock(headerPtr, dataSize);
+        return blockAddress;
+    }
 }
 
 void free_3is(void * address) {

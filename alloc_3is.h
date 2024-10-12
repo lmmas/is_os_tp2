@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#define ALLOCMINSIZE 1024
 
 typedef struct HEADER_TAG {
     struct HEADER_TAG * ptr_next;
